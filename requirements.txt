@@ -1,0 +1,14 @@
+streamlit
+google-generativeai
+python-dotenv
+PyPDF2
+pdf2image
+pytesseract
+pillow
+PyMuPDF
+langchain
+langchain-google-genai
+faiss-cpu
+crewai
+crewai-tools
+googletrans==4.0.0rc1

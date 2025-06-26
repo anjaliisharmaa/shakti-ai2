@@ -1,0 +1,142 @@
+# tools.py
+
+import sys
+import os
+from dotenv import load_dotenv
+from typing import Type
+from pydantic import BaseModel
+from crewai.tools import BaseTool
+
+# Ensure .env variables load
+load_dotenv()
+#os.environ['SERPER_API_KEY'] = os.getenv('SERPER_API_KEY')
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
+# new code
+import sys
+import os
+from dotenv import load_dotenv
+from typing import Type
+from pydantic import BaseModel
+from crewai.tools import BaseTool
+
+load_dotenv()
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
+# 🛑 Monkeypatch to disable imports that use bad model formats
+if os.getenv("LITELLM_PROVIDER") == "google":
+    print("[PATCH] Skipping langchain_google_genai imports due to LiteLLM mode")
+    import builtins
+    real_import = builtins.__import__
+
+    def blocked_import(name, *args, **kwargs):
+        if "langchain_google_genai" in name:
+            raise ImportError(f"Blocked {name} due to LiteLLM override")
+        return real_import(name, *args, **kwargs)
+
+    builtins.__import__ = blocked_import
+
+# Alternative approach using LiteLLM
+from litellm import completion
+import os
+import traceback
+def get_llm_response(messages):
+    print("[DEBUG] get_llm_response called ✅")
+    print("[DEBUG] Call stack:")
+    traceback.print_stack(limit=5)  # See who's calling it
+
+    response = completion(
+        model="gemini/gemini-1.5-flash",
+        api_key=os.getenv("GOOGLE_API_KEY"),
+        provider="google",
+        messages=messages
+    )
+    return response.choices[0].message.content
+
+
+
+
+
+# load all agent input functions
+from agentss.maaya.maaya_core import user_input as maaya_input
+from agentss.gynika.gynika_core import user_input as gynika_input
+from agentss.meher.meher_core import user_input as meher_input
+from agentss.nyaya.nyaya_core import user_input as nyaya_input
+from agentss.vaanya.vaanya_core import user_input as vaanya_input
+
+# define input schema for tools 
+class QueryInput(BaseModel):
+    input: str
+
+
+# tool definitions 
+
+class AskMaayaTool(BaseTool):
+    name: str = "ask_maaya_tool"
+    description: str = "Ask Maaya about pregnancy and baby care"
+    args_schema: Type[BaseModel] = QueryInput
+
+    def _run(self, input: str) -> str:
+        print(f"[TOOL LOG] Calling Maaya with input: {input}")
+        os.environ["LITELLM_PROVIDER"] = "disabled"
+        return maaya_input(input)
+
+class AskGynikaTool(BaseTool):
+    name: str = "ask_gynika_tool"
+    description: str = "Ask Gynika about reproductive health"
+    args_schema: Type[BaseModel] = QueryInput
+
+    def _run(self, input: str) -> str:
+        print(f"[TOOL LOG] Calling Gynika with input: {input}")
+        os.environ["LITELLM_PROVIDER"] = "disabled"
+        return gynika_input(input)
+
+class AskMeherTool(BaseTool):
+    name: str = "ask_meher_tool"
+    description: str = "Ask Meher for mental health or abuse support"
+    args_schema: Type[BaseModel] = QueryInput
+
+    def _run(self, input: str) -> str:
+        print(f"[TOOL LOG] Calling Meher with input: {input}")
+        os.environ["LITELLM_PROVIDER"] = "disabled"
+        return meher_input(input)
+
+class AskNyayaTool(BaseTool):
+    name: str = "ask_nyaya_tool"
+    description: str = "Ask Nyaya about legal and ethical issues in healthcare"
+    args_schema: Type[BaseModel] = QueryInput
+
+    def _run(self, input: str) -> str:
+        print(f"[TOOL LOG] Calling Nyaya with input: {input}")
+        os.environ["LITELLM_PROVIDER"] = "disabled"
+        return nyaya_input(input)
+
+class AskVaanyaTool(BaseTool):
+    name: str = "ask_vaanya_tool"
+    description: str = "Ask Vaanya about menopause and hormonal changes"
+    args_schema: Type[BaseModel] = QueryInput
+
+    def _run(self, input: str) -> str:
+        print(f"[TOOL LOG] Calling Vaanya with input: {input}")
+        os.environ["LITELLM_PROVIDER"] = "disabled"
+        return vaanya_input(input)
+
+# export tools to use in tasks.py or crew_setup.py
+ask_maaya_tool = AskMaayaTool()
+ask_gynika_tool = AskGynikaTool()
+ask_meher_tool = AskMeherTool()
+ask_nyaya_tool = AskNyayaTool()
+ask_vaanya_tool = AskVaanyaTool()
+
+
+def get_llm_response(messages):
+    print("[LiteLLM DEBUG] Calling Gemini...")
+    print("API Key:", os.getenv("GOOGLE_API_KEY")[:5], "...")  # mask
+    print("Model: gemini/gemini-1.5-flash")
+    response = completion(
+        model="gemini/gemini-1.5-flash",  # ✅ this
+        provider="google",               # ✅ this is required
+        api_key=os.getenv("GOOGLE_API_KEY"),
+        messages=messages
+    )
+    return response.choices[0].message.content
